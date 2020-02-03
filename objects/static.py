@@ -12,7 +12,7 @@ class StaticHolder:
     corrupted_color = "DARKRED"
     tree_lifetime = 42
     tree_life_limit = 60
-    slurry_order = ("definition",)
+    slurry_order = ("definition", "state")
     item_order = ("type", "state")
     item_types = ("clothes", "weapon", "used")
     tree_order = ("lifespan", "area", "age")
@@ -20,6 +20,6 @@ class StaticHolder:
     divot_good_fertility = 6
     water_order = ("deep",)
     corrupted_order = ("foo",)
-    squire_size = 8
+    squire_size = 9
     water_influence = 2
     forest_influence = 1

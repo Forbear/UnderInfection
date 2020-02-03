@@ -30,6 +30,12 @@ class Slurry:
     def get_surround(self):
         return self.surround
 
+    def less_surround(self, x, y):
+        self.surround.pop(self.surround.index((x, y)))
+
+    def more_surround(self, x, y):
+        self.surround.append((x, y))
+
 
 if __name__ == "__main__":
     test_slurry = Slurry("Slurry")

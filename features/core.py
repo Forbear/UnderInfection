@@ -17,6 +17,7 @@ class App:
         self.cycle_time = StaticHolder.cycle_time
         self.redraw_items = []
         self.field = []
+        self.field_surroundings = []
         self.forest = []
         self.meadow = []
         self.pond = []
@@ -35,13 +36,13 @@ class App:
         self._running = True
         for i in range(SQUIRE_COUNT):
             self.field.append([])
+            self.field_surroundings.append([])
             for j in range(SQUIRE_COUNT):
                 self.field[i].append(None)
+                self.field_surroundings[i].append(self.get_simple_surround(i, j, 1))
+        for i in range(SQUIRE_COUNT):
+            for j in range(SQUIRE_COUNT):
                 self.new_divot(i, j, 'Simple Divot.')
-
-    def field_cell_fill(self, item, x, y):
-        self.field[x][y] = item
-        self.draw_squire(self.field[x][y].get_color(), x, y)
 
     def on_event(self, event):
         if event.type == pygame.QUIT:
@@ -79,8 +80,7 @@ class App:
     def forest_update(self):
         for (x, y) in self.forest.copy():
             if self.field[x][y].get_age() != Tree.young:
-                saturation_area = map(self.get_divots, self.field[x][y].get_surround())
-                self.saturation(saturation_area, 'Forest', 1)
+                self.saturation(self.field[x][y].get_surround(), 'Forest', 1)
             if self.field[x][y].is_dying():
                 self.new_divot(x, y, 'Tree wilting.')
             elif self.field[x][y].grow():
@@ -88,18 +88,10 @@ class App:
 
     def pond_update(self):
         for (x, y) in self.pond.copy():
-            saturation_area = map(self.get_divots, self.field[x][y].get_surround())
-            self.saturation(saturation_area, 'Water', 2)
+            self.saturation(self.field[x][y].get_surround(), 'Water', 2)
 
     def define_coast(self):
         pass
-
-    def get_divots(self, items):
-        (x, y) = items
-        if type(self.field[x][y]) == Divot:
-            return items
-        else:
-            return None
 
     def get_simple_surround(self, x, y, rad):
         ret_arr = []
@@ -116,29 +108,41 @@ class App:
     def clear_dependencies(self, x, y):
         if type(self.field[x][y]) == Divot:
             self.ground.pop(self.ground.index((x, y)))
+            for (i, j) in self.field_surroundings[x][y]:
+                self.field[i][j].less_surround(x, y)
         elif type(self.field[x][y]) == Water:
             self.pond.pop(self.pond.index((x, y)))
+            for (i, j) in self.field_surroundings[x][y]:
+                self.field[i][j].more_surround(x, y)
         elif type(self.field[x][y]) == Tree:
             self.forest.pop(self.forest.index((x, y)))
+            for (i, j) in self.field_surroundings[x][y]:
+                self.field[i][j].more_surround(x, y)
 
     def new_divot(self, x, y, comment):
         self.clear_dependencies(x, y)
-        self.field[x][y] = Divot(f'{comment}', 0)
-        self.field[x][y].surround = self.get_simple_surround(x, y, StaticHolder.water_influence)
+        self.field[x][y] = Divot(f'{comment}', False, 0)
+        for (i, j) in self.field_surroundings[x][y]:
+            if type(self.field[i][j]) == Divot or self.field[i][j] is None:
+                self.field[x][y].more_surround(i, j)
         self.ground.append((x, y))
         self.draw_squire(self.field[x][y].get_color(), x, y)
 
     def new_tree(self, x, y, comment):
         self.clear_dependencies(x, y)
-        self.field[x][y] = Tree(f'{comment} upgrade.', 0, Area.forest, Tree.young)
-        self.field[x][y].surround = self.get_simple_surround(x, y, StaticHolder.forest_influence)
+        self.field[x][y] = Tree(f'{comment} upgrade.', False, 0, Area.forest, Tree.young)
+        for (i, j) in self.field_surroundings[x][y]:
+            if type(self.field[i][j]) == Divot:
+                self.field[x][y].more_surround(i, j)
         self.forest.append((x, y))
         self.draw_squire(self.field[x][y].get_color(), x, y)
 
     def new_water(self, x, y, comment):
         self.clear_dependencies(x, y)
-        self.field[x][y] = Water(f'{comment}', 0)
-        self.field[x][y].surround = self.get_simple_surround(x, y, StaticHolder.water_influence)
+        self.field[x][y] = Water(f'{comment}', False, 0)
+        for (i, j) in self.field_surroundings[x][y]:
+            if type(self.field[i][j]) == Divot:
+                self.field[x][y].more_surround(i, j)
         self.pond.append((x, y))
         self.draw_squire(self.field[x][y].get_color(), x, y)
 
@@ -153,15 +157,14 @@ class App:
 
     def on_mouse_click(self, obj, x, y):
         if type(self.field[x][y]) == Divot:
+            comment = 'Mouse click.'
             if obj == Tree:
-                self.field_cell_fill(Tree("Mouse click.", 0, Area.meadow, Tree.young), x, y)
+                self.new_tree(x, y, comment)
                 self.forest.append((x, y))
             elif obj == Water:
-                self.new_water(x, y, 'Mouse click.')
+                self.new_water(x, y, comment)
             elif obj == Divot:
-                self.field_cell_fill(Divot("Mouse click.", 0), x, y)
-                # self.meadow.append((x, y))
-            # print(f'Inject {type(self.field[x][y])} at [{x, y}]')
+                self.new_divot(x, y, comment)
 
     def on_cleanup(self):
         print(f'Application runtime {time.time() - self.start_time} seconds.')
