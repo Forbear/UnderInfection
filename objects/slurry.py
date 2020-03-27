@@ -9,6 +9,7 @@ class Slurry:
         self.color = pygame.Color(StaticHolder.slurry_color)
         self.build(StaticHolder.slurry_order, args)
         self.surround = []
+        self.active = False
 
     def build(self, order, pieces):
         if len(order) != len(pieces):
@@ -28,13 +29,20 @@ class Slurry:
         return self.color
 
     def get_surround(self):
-        return self.surround
+        return self.surround.copy()
 
     def less_surround(self, x, y):
         self.surround.pop(self.surround.index((x, y)))
+        if len(self.surround) == 0:
+            self.active = False
 
     def more_surround(self, x, y):
+        if not self.active:
+            self.active = True
         self.surround.append((x, y))
+
+    def is_active(self):
+        return self.active
 
 
 if __name__ == "__main__":
